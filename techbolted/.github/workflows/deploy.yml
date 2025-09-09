@@ -1,0 +1,34 @@
+name: Deploy Next.js App (Self-hosted)
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Copy Environment File
+        run: cp /var/www/html/techbolted-envs/env-web .env
+
+      - name: Install Dependencies
+        run: yarn install
+
+      - name: Build Next.js App
+        run: yarn build
+
+      - name: Start or Restart PM2 Process
+        run: |
+          if pm2 list | grep -q "web-techbolt"; then
+            echo "Process exists. Restarting..."
+            pm2 restart web-techbolt --update-env
+          else
+            echo "Process not found. Starting new PM2 process..."
+            pm2 start node_modules/next/dist/bin/next --name web-techbolt -- start -p 3001
+          fi
+          pm2 save
+          
